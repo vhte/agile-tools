@@ -1,0 +1,75 @@
+body {
+  color:#d5d6d7;
+  background-color: #292d34;
+  font-family:"BlinkMacSystemFont", "Segoe UI", "Helvetica", "Apple Color Emoji", "Arial", sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+}
+button,input,select,option {
+  font-family:"BlinkMacSystemFont", "Segoe UI", "Helvetica", "Apple Color Emoji", "Arial", sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+form {
+  /* Center the form on the page */
+  margin: 0 auto;
+  width: 400px;
+  /* Form outline */
+  padding: 1em;
+  border: 1px solid #ccc;
+  border-radius: 1em;
+}
+  
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+ul > li {
+  display: inline;
+  margin-bottom:1em;
+}
+form li li ul {
+  margin-top:1em;
+}
+form li li li {
+  margin-left:2em;
+  list-style: decimal;
+  display: inline-block;
+}
+
+input:focus,
+textarea:focus {
+  /* Additional highlight for focused elements */
+  border-color: #000;
+}
+
+textarea {
+  /* Align multiline text fields with their labels */
+  vertical-align: top;
+
+  /* Provide space to type some text */
+  height: 5em;
+}
+
+.button {
+  /* Align buttons with the text fields */
+  padding-left: 90px; /* same size as the label elements */
+}
+
+button {
+  /* This extra margin represent roughly the same space as the space
+      between the labels and their text fields */
+  margin-left: 0.5em;
+  display:inline-block;
+  text-align: center;
+}
+
+.subteam {
+  font-weight: bold;
+}
+
+input[type=checkbox] {
+  text-align: right;
+  margin-left:1em;
+}
+input[type=checkbox]:disabled+label {
+  color:rgb(71, 71, 71); /* TODO */
+}

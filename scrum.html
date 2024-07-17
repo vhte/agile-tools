@@ -1,0 +1,160 @@
+<html lang="en-us">
+    <head>
+        <meta charset="utf-8">
+        <title>Scrum Roulette</title>
+        <link href="css/scrum.css" rel="stylesheet">
+        <link rel="icon" href="favicon-32px.png" sizes="32x32">
+        <script>
+            /**
+             * Scrum Roulette 
+             * 
+             * This is a tool to help SMs to organize and pick by random (if necessary) team members to their turns during dailies.
+             * Use "[something] Name" to block the person's name but still see it in the team. Used when someone is on vacation or out for some other reason
+             * 
+             * TODO
+             * 1. Print this page with attendence (printed by: XYZ at hh:mm:ss dd/mm/yyyy)
+             * 2. Better improve vacation with (un)limited time for the box
+             * 3. Accents: e.g. Sébastien not being catched by the regex
+             * 4. Update automatically when list is changed
+            */
+            const TEAMS = {
+                "RAN": {
+                    "PO": ["[block] Emma"],
+                    "QA": ["Liam", "Olivia", "Noah", "William"],
+                    "DEV": ["John", "Josh", "Sebastian", "Mike", "Sophia"],
+                    "INFRA": ["[block] James", "[block] Isabella"]
+                },
+                "STA": {
+                    "PO": ["Charlotte"],
+                    "DE": ["Hnery"],
+                    "QA": ["Jackson", "Haper"],
+                    "BE": ["Olivia", "Noah", "Paul"],
+                    "FE": ["Alexander"],
+                    }
+                ,
+                "FIR": {
+                    "PO": ["Mia"],
+                    "QA": ["Lucas", "[block] David"],
+                    "DEV": ["Grace", "Daniel"],
+                },
+                
+            }
+            function fill_squad_list(event){
+                event.preventDefault();
+                fill_squad();
+            }
+
+            function randomize(event){
+                event.preventDefault();
+                const teams_object = TEAMS;
+                for(let i = 0;i<Object.keys(teams_object).length;i++) {
+                    let team = teams_object[Object.keys(teams_object)[i]];
+                    for(let j=0;j<Object.keys(team).length;j++) {
+                        let subteam = team[Object.keys(team)[j]];
+                        subteam.sort((a,b) => 0.5 - Math.random());
+                    }
+                }
+                fill_squad(teams_object);
+            }
+
+            function fill_squad(teams_object=TEAMS) {
+                let total_members = 0;
+
+                // Loading first squad in the list
+                const squad_select = document.getElementById("squad");
+                const squad_list = teams_object[squad_select.options[squad_select.selectedIndex].value];
+
+                const people = document.getElementById("people");
+                // Cleaning current people input
+                for(let i=people.children.length-1;i>-1;i--) {
+                    people.removeChild(people.children[i]);
+                }
+
+                // Adding squad list
+                let li_subteam = {};
+                for(i=0;i<Object.keys(squad_list).length;i++) {
+                    let new_group = document.createElement("li");
+                    let span_new_group = document.createElement("span");
+                    span_new_group.setAttribute("class", "subteam");
+                    span_new_group.appendChild(document.createTextNode(Object.keys(squad_list)[i]));
+                    new_group.appendChild(span_new_group);
+
+                    let ul_subteam = document.createElement("ul");
+                    let sub_team = Object.keys(squad_list)[i];
+                    for(let j = 0;j<squad_list[sub_team].length;j++) {
+                        total_members += 1;
+
+                        let new_person = document.createElement("li");
+
+                        let checkbox = document.createElement("input");
+                        checkbox.setAttribute("type", "checkbox");
+                        checkbox.setAttribute("id", "check-" + i + "-" + j);
+
+                        // [team] name disables row
+                        const re = new RegExp(/^\[[A-Za-z0-9]+\][A-Za-z0-9.\s]+$/);
+                        if(re.test(squad_list[sub_team][j])) {
+                            checkbox.setAttribute("checked", "");
+                            checkbox.setAttribute("disabled", "");
+                            total_members -= 1;
+                        }
+
+                        new_person.appendChild(checkbox);
+
+                        let label = document.createElement("label");
+                        label.setAttribute("for", "check-" + i + "-" + j);
+                        label.textContent = squad_list[sub_team][j];
+                        new_person.appendChild(label);
+                        
+                        ul_subteam.appendChild(new_person);
+                    }
+
+                    document.getElementById("total_members").textContent = total_members;
+
+                    new_group.appendChild(ul_subteam);
+                    people.appendChild(new_group);
+                }
+            }
+
+            window.addEventListener("load", (event) => {
+                const now = new Date().toJSON().slice(0,10);
+                document.getElementById("today").textContent = now;
+                document.getElementById("print").addEventListener("click", () => {
+                    print();
+                });
+
+                fill_squad();
+
+                // Changing the select just loads the team, submit randomizes
+                const form = document.getElementById("roulette");
+                const squad_select = document.getElementById("squad");
+                squad_select.addEventListener("change", fill_squad_list);
+                form.addEventListener("submit", randomize);
+            });
+        </script>
+    </head>
+    <body>
+        <form id="roulette">
+            <ul>
+                <li>
+                    <label for="squad">Squad</label>
+                    <select name="squad" id="squad">
+                        <option value="RAN">Rainbow</option>
+                        <option value="STA">Stars</option>
+                        <option value="FIR">Fireball</option>
+                    </select>
+                    <hr>
+                    <button type="submit">Randomize</button>
+                    <button type="button" id="print">Print report</button>
+                </li>
+                <li>
+                    <h3>Squad members (<span id="total_members"></span> active) | <span id="today"></span></h3>
+                    <ul id="people">
+                        <li>Person1</li>
+                        <li>Person2</li>
+                        <li>Person3</li>
+                    </ul>
+                </li>
+            </ul>
+        </form>
+    </body>
+</html>
