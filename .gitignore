@@ -1,5 +1,21 @@
-.venv/
+# This project has no build step and no dependencies — there is deliberately
+# very little to ignore. If you find yourself adding a line here for a
+# toolchain, check CONTRIBUTING.md first.
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
 .idea/
-logs/
-__pycache__/
-**/.DS_Store
+*.swp
+*~
+
+# Local scratch — handy for exported boards you do not want committed
+scratch/
+*.local.json
+
+# Anything a well-meaning contributor's editor might install
+node_modules/

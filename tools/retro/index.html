@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Retro Board · Agile Toolbox</title>
+<meta name="description" content="Facilitate a retrospective in the browser. Four formats, phases, dot voting, action items. Nothing leaves your machine.">
+<link rel="icon" href="../../assets/icons/icon.svg" type="image/svg+xml">
+<link rel="manifest" href="../../manifest.json">
+<link rel="stylesheet" href="../../assets/css/app.css">
+<style>
+  /* --- Retro-specific layout ------------------------------------------- */
+  .board-bar {
+    display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: flex-end;
+    margin-bottom: var(--sp-4);
+  }
+  .board-bar .field { flex: 0 1 260px; }
+
+  .phases { display: flex; flex-wrap: wrap; gap: 2px; padding: 3px; background: var(--surface-2);
+            border: 1px solid var(--border); border-radius: var(--radius); }
+  .phase-btn {
+    flex: 1 1 auto; padding: 6px 10px; font: inherit; font-size: 0.82rem; font-weight: 600;
+    color: var(--text-2); background: transparent; border: 0; border-radius: var(--radius-sm);
+    cursor: pointer; white-space: nowrap;
+  }
+  .phase-btn:hover { color: var(--text); background: var(--surface); }
+  .phase-btn[aria-current="true"] { background: var(--accent); color: var(--accent-text); }
+  .phase-help { font-size: 0.83rem; color: var(--text-2); margin-top: var(--sp-2); }
+
+  .timer { display: flex; align-items: center; gap: var(--sp-2); }
+  .timer__display {
+    font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700;
+    font-variant-numeric: tabular-nums; min-width: 56px; text-align: center;
+  }
+  .timer__display.is-over { color: var(--danger); }
+
+  .columns { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(255px, 1fr)); align-items: start; }
+  .col {
+    display: flex; flex-direction: column; min-width: 0;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+  }
+  .col__head {
+    display: flex; align-items: center; gap: var(--sp-2);
+    padding: var(--sp-3); border-bottom: 1px solid var(--border);
+    border-top: 3px solid var(--col-accent, var(--accent));
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .col__emoji { font-size: 1rem; }
+  .col__name { flex: 1 1 auto; font-weight: 650; font-size: 0.95rem; min-width: 0; }
+  .col__count { font-size: 0.75rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .col__prompt { padding: 0 var(--sp-3); margin-top: var(--sp-2); font-size: 0.78rem; color: var(--text-3); }
+  .col__cards { padding: var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-2); min-height: 46px; }
+  .col__cards.is-drop-target { background: var(--accent-soft); border-radius: var(--radius-sm); }
+  .col__new { padding: 0 var(--sp-3) var(--sp-3); }
+  .col__new textarea { font-size: 0.88rem; }
+
+  .rcard {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-1); position: relative;
+  }
+  .rcard.is-dragging { opacity: 0.4; }
+  .rcard.is-insert-before { box-shadow: 0 -3px 0 var(--accent), var(--shadow-1); }
+  .rcard.is-insert-after { box-shadow: 0 3px 0 var(--accent), var(--shadow-1); }
+  .rcard__grip {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 6px; cursor: grab; color: var(--text-3);
+    border-bottom: 1px solid var(--border);
+  }
+  .rcard__grip:active { cursor: grabbing; }
+  .rcard__author { flex: 1 1 auto; font-size: 0.72rem; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rcard__text { padding: var(--sp-3); font-size: 0.9rem; white-space: pre-wrap; overflow-wrap: anywhere; cursor: text; }
+  .rcard__text.is-masked { color: var(--text-3); font-style: italic; user-select: none; }
+  .rcard__edit { padding: var(--sp-2); }
+  .rcard__foot {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 6px; border-top: 1px solid var(--border);
+  }
+  .rcard__votes {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.8rem; font-weight: 650; font-variant-numeric: tabular-nums;
+  }
+  .rcard__votes .n { min-width: 12px; text-align: center; }
+  .rcard__children { margin: 0 var(--sp-3) var(--sp-3); padding-left: var(--sp-3); border-left: 2px solid var(--border-strong); }
+  .rcard__child { font-size: 0.83rem; color: var(--text-2); padding: 3px 0; display: flex; gap: 6px; align-items: flex-start; }
+  .rcard__child span { flex: 1 1 auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+  .actions-list { display: flex; flex-direction: column; gap: var(--sp-2); }
+  .action-row {
+    display: grid; gap: var(--sp-2); align-items: center;
+    grid-template-columns: auto minmax(0, 1fr) 150px 130px auto;
+    padding: var(--sp-2); background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+  }
+  .action-row.is-done .action-text { text-decoration: line-through; color: var(--text-3); }
+  @media (max-width: 720px) {
+    .action-row { grid-template-columns: auto minmax(0, 1fr) auto; }
+    .action-row .action-owner, .action-row .action-due { grid-column: 2 / span 2; }
+  }
+</style>
+</head>
+<body data-title="Retro Board" data-root="../../">
+
+<main class="wrap wrap--wide">
+
+  <div class="board-bar">
+    <div class="field">
+      <label class="label" for="board-select">Board</label>
+      <select id="board-select"></select>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn--primary" id="new-board" type="button">New retro</button>
+      <button class="btn" id="rename-board" type="button">Rename</button>
+      <button class="btn btn--danger" id="delete-board" type="button">Delete</button>
+    </div>
+    <div class="topbar__spacer"></div>
+    <div class="btn-row">
+      <button class="btn" id="export-md" type="button">Export Markdown</button>
+      <button class="btn" id="export-json" type="button">Export JSON</button>
+      <button class="btn" id="import-json" type="button">Import</button>
+      <button class="btn btn--ghost" id="print" type="button">Print</button>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card__body">
+      <div class="row" style="align-items: stretch;">
+        <div class="flex-1" style="min-width: 280px;">
+          <div class="phases" id="phases" role="group" aria-label="Retro phase"></div>
+          <p class="phase-help" id="phase-help"></p>
+        </div>
+        <div class="field" style="flex: 0 0 auto;">
+          <span class="label">Timer</span>
+          <div class="timer">
+            <input type="number" id="timer-minutes" min="1" max="120" step="1" value="5"
+                   style="width: 62px;" aria-label="Timer minutes">
+            <span class="timer__display" id="timer-display">5:00</span>
+            <button class="btn btn--sm" id="timer-start" type="button">Start</button>
+            <button class="btn btn--sm btn--ghost" id="timer-reset" type="button">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mt-3" style="align-items: center;">
+        <label class="check">
+          <input type="checkbox" id="opt-mask">
+          Hide other people's cards until <strong>Reveal</strong>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="opt-anon">
+          Anonymous cards (no author name)
+        </label>
+        <div class="field" style="flex: 0 0 170px;">
+          <label class="label" for="opt-name">Your name</label>
+          <input type="text" id="opt-name" placeholder="optional" autocomplete="off">
+        </div>
+        <div class="field" style="flex: 0 0 130px;">
+          <label class="label" for="opt-budget">Votes per person</label>
+          <input type="number" id="opt-budget" min="0" max="20" step="1" value="3">
+        </div>
+        <div class="stat" style="flex: 0 0 auto;">
+          <div class="stat__label">Your votes left</div>
+          <div class="stat__value" id="votes-left">3</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="columns" id="columns"></div>
+
+  <div class="section-title">
+    <h2>Action items</h2>
+    <button class="btn btn--sm" id="carry-actions" type="button">Carry over unfinished</button>
+    <button class="btn btn--sm btn--primary" id="add-action" type="button">Add action</button>
+  </div>
+  <div class="actions-list" id="actions"></div>
+
+  <p class="tiny muted mt-4">
+    Everything on this page is stored only in this browser. To share a board, export it —
+    JSON round-trips into any other copy of the toolbox, Markdown pastes into a ticket or wiki.
+  </p>
+</main>
+
+<div id="toasts"></div>
+
+<script src="../../assets/js/store.js"></script>
+<script src="../../assets/js/ui.js"></script>
+<script src="./retro.js"></script>
+</body>
+</html>

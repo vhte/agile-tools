@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agile Toolbox — facilitation tools that run in your browser</title>
+<meta name="description" content="Retrospectives, standups, capacity forecasting and team health surveys. No account, no backend, no data leaving your machine. Open source.">
+<meta name="theme-color" content="#4f46e5">
+<link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./assets/icons/icon-192.png">
+<link rel="manifest" href="./manifest.json">
+<link rel="stylesheet" href="./assets/css/app.css">
+<style>
+  .hero { padding: var(--sp-7) 0 var(--sp-6); max-width: 720px; }
+  .hero h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); letter-spacing: -0.035em; }
+  .hero p { font-size: 1.05rem; color: var(--text-2); margin-top: var(--sp-3); }
+  .hero .badges { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: var(--sp-4); }
+
+  .tools { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); }
+  a.tool {
+    display: flex; flex-direction: column; gap: var(--sp-2);
+    padding: var(--sp-4); background: var(--surface);
+    border: 1px solid var(--border); border-left: 3px solid var(--tool-accent, var(--accent));
+    border-radius: var(--radius); box-shadow: var(--shadow-1);
+    color: var(--text); transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  }
+  a.tool:hover { text-decoration: none; transform: translateY(-2px); box-shadow: var(--shadow-2); }
+  a.tool h3 { display: flex; align-items: center; gap: var(--sp-2); font-size: 1.05rem; }
+  a.tool .tool__what { color: var(--text-2); font-size: 0.9rem; }
+  a.tool ul { margin: var(--sp-2) 0 0; padding-left: 18px; font-size: 0.83rem; color: var(--text-3); }
+  a.tool .tool__go { margin-top: auto; padding-top: var(--sp-3); font-size: 0.85rem; font-weight: 650; color: var(--tool-accent, var(--accent)); }
+
+  .principles { display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .principle h3 { font-size: 0.95rem; margin-bottom: 5px; }
+  .principle p { font-size: 0.9rem; color: var(--text-2); margin: 0; }
+
+  .roadmap { columns: 2 260px; column-gap: var(--sp-5); font-size: 0.9rem; }
+  .roadmap li { margin-bottom: 6px; break-inside: avoid; }
+
+  footer.site { margin-top: var(--sp-7); padding-top: var(--sp-4); border-top: 1px solid var(--border);
+                color: var(--text-3); font-size: 0.85rem; display: flex; flex-wrap: wrap; gap: var(--sp-3); }
+</style>
+</head>
+<body data-root="./">
+
+<main class="wrap">
+
+  <section class="hero">
+    <h1>Facilitation tools that respect the room.</h1>
+    <p>
+      Four tools a scrum master actually opens during the week — a retro board, a standup
+      facilitator, a capacity forecaster and an anonymous team health survey. They run entirely
+      inside your browser. There is no account to create, no workspace to invite people to, and
+      no server that could ever be asked to hand over what your team said.
+    </p>
+    <div class="badges">
+      <span class="tag tag--accent">No backend</span>
+      <span class="tag tag--ok">Works offline</span>
+      <span class="tag tag--info">MIT licensed</span>
+      <span class="tag">Zero dependencies</span>
+      <span class="tag">Exports to Markdown</span>
+    </div>
+  </section>
+
+  <div class="section-title"><h2>The tools</h2></div>
+
+  <div class="tools">
+    <a class="tool" href="./tools/retro/index.html" style="--tool-accent: hsl(275 60% 55%)">
+      <h3><span aria-hidden="true">🔁</span> Retro Board</h3>
+      <p class="tool__what">
+        Run the whole retro in one tab: collect in silence, reveal, dot-vote, then leave with owned actions.
+      </p>
+      <ul>
+        <li>Start/Stop/Continue, 4 Ls, Sailboat, Mad/Sad/Glad</li>
+        <li>Cards hidden from everyone else until you reveal them</li>
+        <li>Unfinished actions carry over from the last retro</li>
+        <li>Exports a Markdown summary you can paste into a ticket</li>
+      </ul>
+      <span class="tool__go">Open the board →</span>
+    </a>
+
+    <a class="tool" href="./tools/standup/index.html" style="--tool-accent: hsl(196 65% 46%)">
+      <h3><span aria-hidden="true">⏱️</span> Standup Facilitator</h3>
+      <p class="tool__what">
+        Randomized order, a visible timebox per person, and blockers captured as you go instead of forgotten.
+      </p>
+      <ul>
+        <li>Nobody opens two days in a row</li>
+        <li>Async mode compiles written updates into one digest</li>
+        <li>Blocker heatmap by <em>category</em>, never by person</li>
+        <li>Copy the digest straight into your channel</li>
+      </ul>
+      <span class="tool__go">Run a standup →</span>
+    </a>
+
+    <a class="tool" href="./tools/capacity/index.html" style="--tool-accent: hsl(152 55% 40%)">
+      <h3><span aria-hidden="true">📐</span> Sprint Capacity Planner</h3>
+      <p class="tool__what">
+        Time off, part-time allocation and on-call duty turned into an honest commitment range instead of a guess.
+      </p>
+      <ul>
+        <li>Working days, holidays and shared people handled properly</li>
+        <li>10,000-run Monte Carlo over your own throughput history</li>
+        <li>Answers “what are the odds we finish 34 points?”</li>
+        <li>Clone a plan into the next sprint in one click</li>
+      </ul>
+      <span class="tool__go">Plan a sprint →</span>
+    </a>
+
+    <a class="tool" href="./tools/health-radar/index.html" style="--tool-accent: hsl(32 75% 46%)">
+      <h3><span aria-hidden="true">🩺</span> Team Health Radar</h3>
+      <p class="tool__what">
+        An anonymous survey that stays anonymous, because there is no service in the middle to know who answered.
+      </p>
+      <ul>
+        <li>Each person's answers become a short numeric code</li>
+        <li>Codes carry no name, no free text, no device id</li>
+        <li>Results stay hidden until three people have answered</li>
+        <li>Radar plus a trend line across rounds</li>
+      </ul>
+      <span class="tool__go">Take the pulse →</span>
+    </a>
+  </div>
+
+  <div class="section-title"><h2>Why it is built this way</h2></div>
+
+  <div class="principles">
+    <div class="principle">
+      <h3>Privacy is a facilitation feature</h3>
+      <p>
+        People self-censor when they suspect a tool remembers. Nothing here is transmitted, so that
+        suspicion has nowhere to land. Your data lives in this browser until you export or delete it.
+      </p>
+    </div>
+    <div class="principle">
+      <h3>Never measure individuals</h3>
+      <p>
+        Turn timers help a facilitator keep a meeting inside its box and are never stored per person.
+        Blockers aggregate by category. Nothing here can be turned into a performance report, by design.
+      </p>
+    </div>
+    <div class="principle">
+      <h3>Ranges, not single numbers</h3>
+      <p>
+        The capacity planner refuses to produce one figure, because one figure becomes a promise.
+        It gives you a forecast with a confidence attached and expects you to say so out loud.
+      </p>
+    </div>
+    <div class="principle">
+      <h3>Your data is portable</h3>
+      <p>
+        Every tool exports JSON that imports into any other copy, and Markdown that pastes into a
+        ticket or a wiki. Nothing is trapped, so nothing needs a migration plan.
+      </p>
+    </div>
+  </div>
+
+  <div class="section-title"><h2>Your data</h2></div>
+
+  <div class="card">
+    <div class="card__body stack">
+      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));" id="usage-stats"></div>
+      <div class="btn-row">
+        <button class="btn btn--primary" id="backup" type="button">Back up everything</button>
+        <button class="btn" id="restore" type="button">Restore a backup</button>
+        <button class="btn btn--danger" id="wipe" type="button">Erase all local data</button>
+      </div>
+      <p class="hint">
+        A backup is a single JSON file covering every tool. Restoring merges it into what is already
+        here — useful for moving between machines, or for handing a team's history to whoever takes
+        over facilitation. Clearing your browser's site data does the same thing as the erase button,
+        which is worth knowing before you rely on this for anything you cannot lose.
+      </p>
+    </div>
+  </div>
+
+  <div class="section-title"><h2>Also in the repo</h2></div>
+
+  <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+    <div class="card"><div class="card__body">
+      <h3>Definition of Done &amp; Ready templates</h3>
+      <p class="muted tiny mt-2">
+        Forkable Markdown checklists per team type — backend, frontend, platform, data, mobile —
+        plus a Definition of Ready. Version-control your DoD instead of losing it in a wiki page
+        nobody has opened since onboarding.
+      </p>
+      <p class="tiny"><code class="mono">templates/dod-dor/</code></p>
+    </div></div>
+    <div class="card"><div class="card__body">
+      <h3>Roadmap — good first issues</h3>
+      <ul class="roadmap muted">
+        <li>Cross-team dependency tracker</li>
+        <li>Interactive ceremony playbook (PWA, offline)</li>
+        <li>Refinement / estimation session helper</li>
+        <li>Working agreement builder</li>
+        <li>Impediment escalation log</li>
+        <li>i18n string tables</li>
+      </ul>
+      <p class="tiny mt-2">See <code class="mono">CONTRIBUTING.md</code> — a new tool is one folder and two files.</p>
+    </div></div>
+  </div>
+
+  <footer class="site">
+    <span>Agile Toolbox · MIT licensed · no analytics, no trackers, no network calls</span>
+    <span class="topbar__spacer"></span>
+    <span id="offline-state">Checking offline support…</span>
+  </footer>
+</main>
+
+<div id="toasts"></div>
+
+<script src="./assets/js/store.js"></script>
+<script src="./assets/js/ui.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  function renderUsage() {
+    var host = UI.clear(UI.qs("#usage-stats"));
+    var bytes = Store.usage();
+    var counts = {
+      retro: Store.keys("retro").filter(function (k) { return k.indexOf("board:") === 0; }).length,
+      standup: (Store.read("standup", "sessions", []) || []).length,
+      capacity: (Store.read("capacity", "plans", []) || []).length,
+      radar: (Store.read("radar", "rounds", []) || []).length
+    };
+    [
+      { label: "Retro boards", value: String(counts.retro) },
+      { label: "Standups recorded", value: String(counts.standup) },
+      { label: "Capacity plans", value: String(counts.capacity) },
+      { label: "Health rounds", value: String(counts.radar) },
+      {
+        label: "Stored locally",
+        value: bytes < 1024 ? bytes + " B" : (bytes / 1024).toFixed(1) + " KB",
+        sub: Store.isPersistent ? "in this browser only" : "memory only — storage is blocked"
+      }
+    ].forEach(function (s) {
+      host.appendChild(UI.el("div", { class: "stat" }, [
+        UI.el("div", { class: "stat__label", text: s.label }),
+        UI.el("div", { class: "stat__value", text: s.value }),
+        s.sub ? UI.el("div", { class: "stat__sub", text: s.sub }) : null
+      ]));
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    UI.initChrome();
+    renderUsage();
+
+    UI.qs("#backup").addEventListener("click", function () {
+      UI.downloadJSON("agile-toolbox-backup-" + UI.isoDate() + ".json", Store.exportAll());
+    });
+
+    UI.qs("#restore").addEventListener("click", function () {
+      UI.pickJSON(function (payload) {
+        try {
+          var n = Store.importAll(payload, "merge");
+          renderUsage();
+          UI.toast("Restored " + n + " entries. Open a tool to see them.", "ok", 4000);
+        } catch (err) {
+          UI.toast(err.message, "danger", 5000);
+        }
+      });
+    });
+
+    UI.qs("#wipe").addEventListener("click", function () {
+      if (!UI.confirmDanger("Erase every board, standup, plan and health round stored in this browser? Back up first — this cannot be undone.")) return;
+      if (!UI.confirmDanger("Last check: this really does delete everything. Continue?")) return;
+      Store.clearAll();
+      UI.theme.apply("system");
+      renderUsage();
+      UI.toast("Local data erased.");
+    });
+
+    var offline = UI.qs("#offline-state");
+    if (location.protocol === "file:") {
+      offline.textContent = "Opened from disk — already offline, service worker not needed";
+    } else if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistration().then(function (reg) {
+        offline.textContent = reg ? "Cached for offline use" : "Offline cache installing…";
+      }, function () { offline.textContent = "Offline cache unavailable"; });
+    } else {
+      offline.textContent = "This browser has no offline support";
+    }
+  });
+})();
+</script>
+</body>
+</html>

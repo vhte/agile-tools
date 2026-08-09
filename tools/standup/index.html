@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Standup Facilitator · Agile Toolbox</title>
+<meta name="description" content="Run a daily standup: randomized order, per-person timebox, blocker capture, async digest, and a category-level blocker heatmap.">
+<link rel="icon" href="../../assets/icons/icon.svg" type="image/svg+xml">
+<link rel="manifest" href="../../manifest.json">
+<link rel="stylesheet" href="../../assets/css/app.css">
+<style>
+  .mode-tabs { display: flex; gap: 2px; padding: 3px; background: var(--surface-2);
+               border: 1px solid var(--border); border-radius: var(--radius); width: fit-content; }
+  .mode-tab { padding: 6px 14px; font: inherit; font-size: 0.85rem; font-weight: 600;
+              color: var(--text-2); background: transparent; border: 0;
+              border-radius: var(--radius-sm); cursor: pointer; }
+  .mode-tab:hover { background: var(--surface); color: var(--text); }
+  .mode-tab[aria-current="true"] { background: var(--accent); color: var(--accent-text); }
+
+  .stage { display: grid; gap: var(--sp-4); grid-template-columns: minmax(0, 1.35fr) minmax(240px, 0.65fr); }
+  @media (max-width: 860px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+
+  .speaker { display: flex; align-items: center; gap: var(--sp-5); padding: var(--sp-5); }
+  @media (max-width: 560px) { .speaker { flex-direction: column; text-align: center; gap: var(--sp-3); } }
+  .speaker__name { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.03em; overflow-wrap: anywhere; }
+  .speaker__meta { color: var(--text-2); font-size: 0.88rem; }
+
+  .ring { position: relative; flex: none; width: 132px; height: 132px; }
+  .ring svg { transform: rotate(-90deg); }
+  .ring__track { stroke: var(--surface-3); }
+  .ring__fill { stroke: var(--accent); transition: stroke-dashoffset .35s linear, stroke .3s ease; }
+  .ring.is-warn .ring__fill { stroke: var(--warn); }
+  .ring.is-over .ring__fill { stroke: var(--danger); }
+  .ring__label {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 0;
+  }
+  .ring__time { font-family: var(--font-mono); font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .ring.is-over .ring__time { color: var(--danger); }
+  .ring__sub { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); }
+
+  .queue { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .queue li {
+    display: flex; align-items: center; gap: var(--sp-2); min-width: 0;
+    padding: 7px var(--sp-4); border-bottom: 1px solid var(--border); font-size: 0.9rem;
+  }
+  .queue li:last-child { border-bottom: 0; }
+  .queue li.is-current { background: var(--accent-soft); font-weight: 650; }
+  .queue li.is-done { color: var(--text-3); }
+  .queue__pos { width: 20px; font-size: 0.75rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .queue__time { margin-left: auto; font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-3); }
+  .queue__time.is-over { color: var(--danger); }
+
+  .roster-row { display: flex; align-items: center; gap: var(--sp-2); padding: 5px 0; }
+  .roster-row input[type="text"] { flex: 1 1 auto; }
+
+  .blocker { display: grid; gap: var(--sp-2); grid-template-columns: minmax(0, 1fr) 170px auto;
+             padding: var(--sp-2); background: var(--surface-2);
+             border: 1px solid var(--border); border-radius: var(--radius-sm); align-items: center; }
+  @media (max-width: 640px) { .blocker { grid-template-columns: minmax(0, 1fr) auto; } .blocker select { grid-column: 1 / span 2; } }
+
+  .async-grid { display: grid; gap: var(--sp-3); }
+  .async-card { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
+  .async-card__head { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--border); }
+  .async-card__head strong { flex: 1 1 auto; }
+  .async-card__body { display: grid; gap: var(--sp-2); padding: var(--sp-3); grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 800px) { .async-card__body { grid-template-columns: minmax(0, 1fr); } }
+
+  .heat { border-collapse: separate; border-spacing: 3px; font-size: 0.8rem; }
+  .heat th { font-weight: 650; color: var(--text-3); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0 4px; white-space: nowrap; }
+  .heat th.rowhead { text-align: left; }
+  .heat td { width: 34px; height: 26px; text-align: center; border-radius: 4px;
+             font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text); }
+
+  pre.digest {
+    margin: 0; padding: var(--sp-3); background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 0.8rem;
+    white-space: pre-wrap; overflow-wrap: anywhere; max-height: 420px; overflow-y: auto;
+  }
+</style>
+</head>
+<body data-title="Standup Facilitator" data-root="../../">
+
+<main class="wrap">
+
+  <div class="row mb-3" style="align-items: flex-end;">
+    <div class="field" style="flex: 0 1 240px;">
+      <label class="label" for="team-select">Team</label>
+      <select id="team-select"></select>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="new-team" type="button">New team</button>
+      <button class="btn btn--danger" id="delete-team" type="button">Delete team</button>
+    </div>
+    <div class="topbar__spacer"></div>
+    <div class="mode-tabs" id="mode-tabs" role="group" aria-label="Mode">
+      <button class="mode-tab" type="button" data-mode="live" aria-current="true">Live</button>
+      <button class="mode-tab" type="button" data-mode="async">Async</button>
+      <button class="mode-tab" type="button" data-mode="trend">Trend</button>
+    </div>
+  </div>
+
+  <!-- ===================== LIVE ===================== -->
+  <section id="view-live">
+    <div class="stage">
+      <div class="stack">
+        <div class="card">
+          <div class="speaker">
+            <div class="ring" id="ring">
+              <svg width="132" height="132" viewBox="0 0 132 132" aria-hidden="true">
+                <circle class="ring__track" cx="66" cy="66" r="58" fill="none" stroke-width="10"></circle>
+                <circle class="ring__fill" id="ring-fill" cx="66" cy="66" r="58" fill="none"
+                        stroke-width="10" stroke-linecap="round"></circle>
+              </svg>
+              <div class="ring__label">
+                <span class="ring__time" id="ring-time">1:30</span>
+                <span class="ring__sub" id="ring-sub">timebox</span>
+              </div>
+            </div>
+            <div class="flex-1">
+              <div class="speaker__meta" id="speaker-position">Not started</div>
+              <div class="speaker__name" id="speaker-name">Press “Start standup”</div>
+              <div class="speaker__meta mt-2" id="speaker-hint">
+                Randomized order, one timebox each. The facilitator talks last, if at all.
+              </div>
+              <div class="btn-row mt-3">
+                <button class="btn btn--primary btn--lg" id="btn-start" type="button">Start standup</button>
+                <button class="btn btn--lg" id="btn-pause" type="button" disabled>Pause</button>
+                <button class="btn btn--lg" id="btn-next" type="button" disabled>Next →</button>
+                <button class="btn btn--ghost" id="btn-reshuffle" type="button">Reshuffle</button>
+                <button class="btn btn--ghost btn--danger" id="btn-finish" type="button" disabled>Finish</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head">
+            <h2>Blockers raised today</h2>
+            <span class="tag" id="blocker-count">0</span>
+            <button class="btn btn--sm btn--primary" id="add-blocker" type="button">Add blocker</button>
+          </div>
+          <div class="card__body stack" id="blockers"></div>
+        </div>
+
+        <div class="card">
+          <div class="card__head">
+            <h2>Digest</h2>
+            <button class="btn btn--sm" id="copy-digest" type="button">Copy Markdown</button>
+            <button class="btn btn--sm" id="download-digest" type="button">Download .md</button>
+          </div>
+          <div class="card__body">
+            <pre class="digest" id="digest">—</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="card">
+          <div class="card__head"><h2>Order</h2><span class="tag" id="queue-total">0</span></div>
+          <ul class="queue" id="queue"></ul>
+        </div>
+
+        <div class="card">
+          <div class="card__head"><h2>Settings</h2></div>
+          <div class="card__body stack">
+            <div class="field">
+              <label class="label" for="timebox">Timebox per person (seconds)</label>
+              <input type="number" id="timebox" min="15" max="600" step="15" value="90">
+            </div>
+            <label class="check">
+              <input type="checkbox" id="auto-advance"> Auto-advance when time runs out
+            </label>
+            <label class="check">
+              <input type="checkbox" id="sound-on" checked> Sound at the end of a turn
+            </label>
+            <div class="hint">
+              Total meeting budget:
+              <strong id="budget">—</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head">
+            <h2>Roster</h2>
+            <button class="btn btn--sm" id="add-member" type="button">Add</button>
+          </div>
+          <div class="card__body">
+            <div id="roster"></div>
+            <p class="hint mt-2">
+              Names stay in this browser. Nobody is timed for evaluation — the timebox protects
+              the group's attention, not a scorecard.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== ASYNC ===================== -->
+  <section id="view-async" class="hidden">
+    <div class="card mb-3">
+      <div class="card__body row" style="align-items: center;">
+        <div class="flex-1">
+          <h2>Async standup</h2>
+          <p class="muted mb-2" style="margin-top:4px;">
+            For distributed teams: paste the prompt into your channel, collect the replies,
+            drop them in below, and generate one digest instead of a meeting.
+          </p>
+        </div>
+        <div class="btn-row">
+          <button class="btn" id="copy-prompt" type="button">Copy the prompt</button>
+          <button class="btn btn--primary" id="async-digest" type="button">Build digest</button>
+        </div>
+      </div>
+    </div>
+    <div class="async-grid" id="async-grid"></div>
+    <div class="card mt-4">
+      <div class="card__head">
+        <h2>Digest</h2>
+        <button class="btn btn--sm" id="copy-async" type="button">Copy Markdown</button>
+        <button class="btn btn--sm" id="download-async" type="button">Download .md</button>
+      </div>
+      <div class="card__body"><pre class="digest" id="async-out">—</pre></div>
+    </div>
+  </section>
+
+  <!-- ===================== TREND ===================== -->
+  <section id="view-trend" class="hidden">
+    <div class="card mb-3">
+      <div class="card__body">
+        <h2>Blocker heatmap</h2>
+        <p class="muted" style="margin-top:4px;">
+          Blockers per ISO week, by category. Deliberately aggregated by <em>category</em> and never
+          by person: a standup log is not a performance record, and the useful signal is which part
+          of the system keeps generating friction.
+        </p>
+        <div class="table-scroll mt-3"><table class="heat" id="heatmap"></table></div>
+      </div>
+    </div>
+    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));" id="trend-stats"></div>
+    <div class="card mt-4">
+      <div class="card__head">
+        <h2>Session history</h2>
+        <button class="btn btn--sm" id="export-sessions" type="button">Export JSON</button>
+        <button class="btn btn--sm" id="import-sessions" type="button">Import</button>
+        <button class="btn btn--sm btn--danger" id="clear-sessions" type="button">Clear history</button>
+      </div>
+      <div class="card__body table-scroll">
+        <table class="data" id="sessions"></table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toasts"></div>
+
+<script src="../../assets/js/store.js"></script>
+<script src="../../assets/js/ui.js"></script>
+<script src="./standup.js"></script>
+</body>
+</html>

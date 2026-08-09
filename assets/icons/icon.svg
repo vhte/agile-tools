@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Agile Toolbox">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#4338ca"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- iteration arc: the loop every one of these tools sits inside -->
+  <path d="M256 108a148 148 0 1 1-104.7 43.3"
+        fill="none" stroke="#ffffff" stroke-opacity=".45" stroke-width="26" stroke-linecap="round"/>
+  <path d="M151 96v56h56" fill="none" stroke="#ffffff" stroke-opacity=".45"
+        stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- the check: something actually got done -->
+  <path d="M175 262l58 58 108-124" fill="none" stroke="#ffffff" stroke-width="42"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

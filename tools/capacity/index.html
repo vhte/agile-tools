@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprint Capacity Planner · Agile Toolbox</title>
+<meta name="description" content="Turn time off, part-time allocation and historical throughput into an honest sprint commitment range, with a Monte Carlo forecast that runs in your browser.">
+<link rel="icon" href="../../assets/icons/icon.svg" type="image/svg+xml">
+<link rel="manifest" href="../../manifest.json">
+<link rel="stylesheet" href="../../assets/css/app.css">
+<style>
+  .planner { display: grid; gap: var(--sp-4); grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); align-items: start; }
+  @media (max-width: 940px) { .planner { grid-template-columns: minmax(0, 1fr); } }
+
+  .stats-grid { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+
+  .forecast-bars { display: flex; flex-direction: column; gap: var(--sp-2); }
+  .fbar { display: grid; grid-template-columns: 112px minmax(0, 1fr) 58px; gap: var(--sp-2); align-items: center; font-size: 0.85rem; }
+  .fbar__track { height: 22px; background: var(--surface-3); border-radius: 5px; overflow: hidden; }
+  .fbar__fill { height: 100%; border-radius: 5px; }
+  .fbar__val { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .fbar__label { color: var(--text-2); }
+
+  canvas.chart { width: 100%; height: 220px; display: block; }
+
+  .holiday-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 4px 3px 9px; background: var(--surface-3); border-radius: 999px; font-size: 0.8rem;
+  }
+  .holiday-chip button { border: 0; background: transparent; color: var(--text-2); cursor: pointer; font: inherit; padding: 0 3px; }
+
+  .weekdays { display: flex; gap: 4px; flex-wrap: wrap; }
+  .weekdays label {
+    display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px;
+    font-size: 0.8rem; cursor: pointer;
+  }
+  .weekdays input { width: 13px; height: 13px; }
+
+  .verdict { padding: var(--sp-3) var(--sp-4); border-radius: var(--radius); font-size: 0.9rem; border: 1px solid transparent; }
+  .verdict--ok { background: var(--ok-soft); color: var(--ok); border-color: color-mix(in srgb, var(--ok) 30%, transparent); }
+  .verdict--warn { background: var(--warn-soft); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 30%, transparent); }
+  .verdict--danger { background: var(--danger-soft); color: var(--danger); border-color: color-mix(in srgb, var(--danger) 30%, transparent); }
+  .verdict strong { font-weight: 700; }
+</style>
+</head>
+<body data-title="Sprint Capacity Planner" data-root="../../">
+
+<main class="wrap wrap--wide">
+
+  <div class="row mb-3" style="align-items: flex-end;">
+    <div class="field" style="flex: 0 1 280px;">
+      <label class="label" for="plan-select">Plan</label>
+      <select id="plan-select"></select>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn--primary" id="new-plan" type="button">New plan</button>
+      <button class="btn" id="clone-plan" type="button">Clone for next sprint</button>
+      <button class="btn btn--danger" id="delete-plan" type="button">Delete</button>
+    </div>
+    <div class="topbar__spacer"></div>
+    <div class="btn-row">
+      <button class="btn" id="export-md" type="button">Export Markdown</button>
+      <button class="btn" id="export-json" type="button">Export JSON</button>
+      <button class="btn" id="import-json" type="button">Import</button>
+    </div>
+  </div>
+
+  <div class="planner">
+    <!-- ============ LEFT: inputs ============ -->
+    <div class="stack">
+      <div class="card">
+        <div class="card__head"><h2>Sprint</h2></div>
+        <div class="card__body stack">
+          <div class="row">
+            <div class="field" style="flex: 1 1 200px;">
+              <label class="label" for="sprint-name">Name</label>
+              <input type="text" id="sprint-name" placeholder="Sprint 42">
+            </div>
+            <div class="field" style="flex: 0 1 160px;">
+              <label class="label" for="sprint-start">First day</label>
+              <input type="date" id="sprint-start">
+            </div>
+            <div class="field" style="flex: 0 1 150px;">
+              <label class="label" for="sprint-days">Calendar days</label>
+              <input type="number" id="sprint-days" min="1" max="90" step="1" value="14">
+            </div>
+            <div class="field" style="flex: 0 1 140px;">
+              <label class="label" for="unit">Unit</label>
+              <select id="unit">
+                <option value="points">Story points</option>
+                <option value="items">Items / stories</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <span class="label">Working days of the week</span>
+            <div class="weekdays" id="weekdays"></div>
+          </div>
+          <div class="field">
+            <span class="label">Company holidays &amp; shutdowns in this sprint</span>
+            <div class="row" style="align-items: flex-end;">
+              <input type="date" id="holiday-date" style="flex: 0 1 160px;" aria-label="Holiday date">
+              <input type="text" id="holiday-name" placeholder="Label (optional)"
+                     aria-label="Holiday label" style="flex: 1 1 160px;">
+              <button class="btn btn--sm" id="add-holiday" type="button">Add</button>
+            </div>
+            <div class="row gap-2 mt-2" id="holidays"></div>
+          </div>
+          <p class="hint" id="sprint-summary"></p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <h2>Who is actually available</h2>
+          <button class="btn btn--sm" id="add-person" type="button">Add person</button>
+        </div>
+        <div class="card__body">
+          <div class="table-scroll">
+            <table class="data" id="people"></table>
+          </div>
+          <p class="hint mt-3">
+            <strong>Allocation %</strong> is how much of the person sits with this team (a shared
+            architect at 40%, someone half on support). <strong>Other duties %</strong> is the slice
+            already committed inside the team — on-call, interrupt duty, mentoring, a fixed meeting load.
+            These are capacity inputs, not a productivity measure of anyone.
+          </p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <h2>Past sprints</h2>
+          <span class="tag" id="history-count">0</span>
+          <button class="btn btn--sm" id="add-history" type="button">Add sprint</button>
+        </div>
+        <div class="card__body">
+          <div class="table-scroll">
+            <table class="data" id="history"></table>
+          </div>
+          <p class="hint mt-3">
+            Enter what each past sprint actually <em>delivered</em> (done, not started) and how many
+            person-days the team really had. Dividing one by the other is what makes the forecast
+            comparable across sprints where half the team was on holiday. Three sprints is the bare
+            minimum; five or more is where the range starts meaning something.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ RIGHT: results ============ -->
+    <div class="stack">
+      <div class="card">
+        <div class="card__head"><h2>Capacity</h2></div>
+        <div class="card__body stack">
+          <div class="stats-grid" id="capacity-stats"></div>
+          <div class="field">
+            <label class="label" for="focus">Focus factor — <span id="focus-val">80</span>%</label>
+            <input type="range" id="focus" min="30" max="100" step="1" value="80">
+            <span class="hint">
+              <strong>80% is neutral</strong>: your throughput history already contains whatever
+              focus the team really had, so at 80 the forecast comes purely from history. Move the
+              dial to model a sprint you expect to be unusually fragmented (lower) or unusually
+              protected (higher). It is a sensitivity control, never a target to hit.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <h2>Forecast</h2>
+          <select id="method" style="width: auto;" aria-label="Simulation method">
+            <option value="bootstrap">Bootstrap history</option>
+            <option value="lognormal">Fit a lognormal</option>
+          </select>
+          <button class="btn btn--sm" id="rerun" type="button">Re-run</button>
+        </div>
+        <div class="card__body stack">
+          <div id="forecast-verdict"></div>
+          <div class="forecast-bars" id="forecast-bars"></div>
+          <div>
+            <span class="label">Distribution of what this team could finish</span>
+            <canvas class="chart" id="hist-chart" height="220"></canvas>
+          </div>
+          <div>
+            <span class="label">Confidence of finishing at least X</span>
+            <canvas class="chart" id="surv-chart" height="220"></canvas>
+          </div>
+          <div class="row" style="align-items: flex-end;">
+            <div class="field" style="flex: 1 1 120px;">
+              <label class="label" for="target">If we commit to…</label>
+              <input type="number" id="target" min="0" step="1" placeholder="e.g. 34">
+            </div>
+            <div class="stat flex-1">
+              <div class="stat__label">Chance of finishing it</div>
+              <div class="stat__value" id="target-prob">—</div>
+              <div class="stat__sub" id="target-note">Type a number to check a commitment.</div>
+            </div>
+          </div>
+          <p class="hint">
+            10,000 simulated sprints, drawn from your own throughput history and scaled to the
+            capacity you entered above. A forecast is not a promise, and a single number never was
+            one either — bring the range to planning and let the team pick from it.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="toasts"></div>
+
+<script src="../../assets/js/store.js"></script>
+<script src="../../assets/js/ui.js"></script>
+<script src="./capacity.js"></script>
+</body>
+</html>
