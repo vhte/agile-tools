@@ -2,7 +2,14 @@
 #
 # There is nothing to build — the repository root *is* the site. This workflow
 # only exists so Pages deploys on push instead of needing the legacy branch
-# setting. Enable it under Settings → Pages → Source: GitHub Actions.
+# setting.
+#
+# FIRST-RUN REQUIREMENT: GitHub Pages must be enabled for the repository, with
+# its source set to "GitHub Actions" (Settings → Pages). Until then the deploy
+# step fails with `HttpError: Not Found` / status 404 — the artifact uploads
+# fine, and only the final "create deployment" API call is rejected. The
+# configure-pages step below asks the API to enable it automatically, which
+# covers most repositories; org policy can still require the manual switch.
 name: Deploy to GitHub Pages
 
 on:
@@ -28,13 +35,20 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+
+      # enablement: true turns Pages on via the API when it is off, so a fresh
+      # fork does not need a visit to Settings before the first deploy works.
+      - name: Configure Pages
+        uses: actions/configure-pages@v6
+        with:
+          enablement: true
 
       - name: Upload the site
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: .
 
       - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
